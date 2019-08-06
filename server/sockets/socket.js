@@ -1,45 +1,62 @@
 const { io } = require('../server');
-const {TicketControl} = require('../classes/ticket-control');
+const {TicketControl} = require('../controller/ticket-control');
 
 
-const ticketControl = new TicketControl();
+
+const ticketControl =new TicketControl();
 
 io.on('connection', (client) => {
+    
+    client.on('solicitarNuevoTurno', async(data, callback) => {
+        try{
+            console.log('solicitarNuevoTurno');
+            let nuevoTurno =  await ticketControl.siguienteTurno();
+            return callback({
+                turno: nuevoTurno
+            });
+        }catch(error){
+            return callback({
+                resp: 'Error al obtener el siguiente turno: ' + error.message
+            });
+        }
+       
+    });
 
-    console.log('Usuario conectado');
+    if(ticketControl){
+            client.emit('enviarTurnoActual', {
+                turno: ticketControl.getUltimo()
+        });
+    }
 
-    client.emit('enviarMensaje', {
-        usuario: 'Administrador',
-        mensaje: 'Bienvenido a esta aplicación'
+   client.on('atenderTicket',  async (data, callback) =>{
+
+            if(!data.escritorio){
+                return callback({
+                    err: true,
+                    message: 'El escritorio es requerido'
+                })
+            }
+
+
+            let atenderTicket =  await ticketControl.atenderTicket(data.escritorio);
+
+            client.broadcast.emit('ultimosCuatro', {
+                ultimosCuatro: ticketControl.getUltimosCuatro()
+            });
+
+            return callback ({
+                atenderTicket
+            });
     });
 
 
+    client.on('ultimosCuatro',  async (data, callback) =>{
 
-    client.on('disconnect', () => {
-        console.log('Usuario desconectado');
-    });
+        let ultimosCuatro =  await ticketControl.getUltimosCuatro();
+        return callback ({
+            ultimosCuatro
+        });
+});
 
-    // Escuchar el cliente
-    client.on('enviarMensaje', (data, callback) => {
-
-        console.log(data);
-
-        client.broadcast.emit('enviarMensaje', data);
-
-
-        // if (mensaje.usuario) {
-        //     callback({
-        //         resp: 'TODO SALIO BIEN!'
-        //     });
-
-        // } else {
-        //     callback({
-        //         resp: 'TODO SALIO MAL!!!!!!!!'
-        //     });
-        // }
-
-
-
-    });
 
 });
