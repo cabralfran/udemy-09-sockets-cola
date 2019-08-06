@@ -2,7 +2,8 @@ var socket = io();
 
 
 socket.on('ultimosCuatro', function (resp) {
-    console.log('entro');
+    var audio = new Audio ('audio/new-ticket.mp3')
+    audio.play();
     setearUltimosCuatro(resp);
 });
 
